@@ -1,15 +1,19 @@
 // scintilla_win_demo.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
-
 // A simple demonstration application using Scintilla
-#include <stdio.h>
 
 #include <windows.h>
 #include <richedit.h>
-
 #include "Scintilla.h"
 #include "SciLexer.h"
 #include "resource.h"
+#include "ILexer.h"
+#include "Lexilla.h"
+#include <string>
+#include <vector>
+#include "LexillaAccess.h"
+
+#pragma warning(disable: 4996)
 
 const char appName[] = "DMApp";
 const char className[] = "DMAppWindow";
@@ -127,7 +131,7 @@ void DMApp::Open() {
 	ofn.hInstance = hInstance;
 	ofn.lpstrFile = openName;
 	ofn.nMaxFile = sizeof(openName);
-	char* filter =
+	char filter[] =
 		"Web (.html;.htm;.asp;.shtml;.css;.xml)\0*.html;*.htm;*.asp;*.shtml;*.css;*.xml\0"
 		"All Files (*.*)\0*.*\0\0";
 
@@ -339,8 +343,20 @@ const char vbsKeyWords[] =
 "variant";
 
 void DMApp::InitialiseEditor() {
-	SendEditor(SCI_SETLEXER, SCLEX_HTML);
-	SendEditor(SCI_SETSTYLEBITS, 7);
+	// SendEditor(SCI_SETLEXER, SCLEX_HTML);
+	// SendEditor(SCI_SETSTYLEBITS, 7);
+
+	char temp[MAX_PATH] = { 0 };
+	GetModuleFileNameA(NULL, temp, MAX_PATH);
+	std::string homedir(temp);
+	homedir = homedir.substr(0, homedir.find_last_of('\\'));
+	if (homedir.size()) {
+		Lexilla::SetDefaultDirectory(homedir);
+		Lexilla::Load(".");
+		std::string lexname = "xml";
+		Scintilla::ILexer5* plexer = Lexilla::MakeLexer(lexname);
+		SendEditor(SCI_SETILEXER, 0, reinterpret_cast<LPARAM>(plexer));
+	}
 
 	SendEditor(SCI_SETKEYWORDS, 0,
 		reinterpret_cast<LPARAM>(htmlKeyWords));
@@ -547,8 +563,8 @@ int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR lpszCmdLine, int nCmdSh
 
 	HACCEL hAccTable = LoadAccelerators(hInstance, "DMApp");
 
-	//::LoadLibrary("Scintilla.DLL");
-	::LoadLibrary("SciLexer.DLL");
+	::LoadLibrary("Scintilla.DLL");
+	// ::LoadLibrary("SciLexer.DLL");
 
 	RegisterWindowClass();
 
